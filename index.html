@@ -12,7 +12,7 @@
   <!-- ✅ TensorFlow -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 
-  <!-- ✅ Teachable Machine (تم التصحيح) -->
+  <!-- ✅ Teachable Machine -->
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
   <style>
@@ -23,13 +23,10 @@
       display: flex;
       justify-content: center;
       align-items: center;
-
-      /* خلفية بيج زراعية */
       background: linear-gradient(180deg, #f3efe6, #e8dcc5);
       color: #3b2f1b;
     }
 
-    /* ✅ الكرت */
     .app-card {
       width: 92%;
       max-width: 480px;
@@ -38,21 +35,18 @@
       padding: 24px;
       text-align: center;
       box-shadow:
-        0 8px 30px rgba(0, 0, 0, 0.08),
+        0 8px 30px rgba(0,0,0,.08),
         inset 0 0 0 1px #d6c6a3;
     }
 
     h1 {
-      margin: 0 0 18px;
+      margin-bottom: 18px;
       font-size: 22px;
       color: #5a4022;
     }
 
-    h1 span {
-      color: #8b5e2e;
-    }
+    h1 span { color: #8b5e2e; }
 
-    /* ✅ مربع الكاميرا */
     .camera-box {
       width: 100%;
       height: 380px;
@@ -69,13 +63,11 @@
       object-fit: cover;
     }
 
-    /* ✅ صندوق النتيجة */
     .result-box {
       padding: 14px;
       border-radius: 16px;
       border: 1px solid #c9a45c;
       background: #f6f0e4;
-      color: #5a4022;
       font-size: 17px;
       margin-bottom: 8px;
     }
@@ -84,75 +76,63 @@
       font-size: 14px;
       color: #7a6a4f;
     }
-
-    /* ✅ تحسين للجوال */
-    @media (max-width: 480px) {
-      .camera-box {
-        height: 420px;
-      }
-    }
   </style>
 </head>
 
 <body>
 
-  <div class="app-card">
-    <h1>🌴 <span>اكتشف نوع التمر</span></h1>
+<div class="app-card">
+  <h1>🌴 <span>اكتشف نوع التمر</span></h1>
 
-    <div class="camera-box" id="webcam-container"></div>
+  <div class="camera-box" id="webcam-container"></div>
 
-    <div class="result-box" id="result">
-      جاري تحليل التمر...
-    </div>
+  <div class="result-box" id="result">جاري تحليل التمر...</div>
 
-    <div class="hint">
-      وجّه الكاميرا إلى ثمرة تمر (خلاص، سكري، برحي)
-    </div>
-  </div>
+  <div class="hint">وجّه الكاميرا إلى ثمرة تمر</div>
+</div>
 
-  <script>
-    /* ✅ عدّلي اسم المجلد إذا مختلف */
-    const MODEL_URL = "./date_model/";
+<script>
+  const MODEL_URL = "./date_model/"; // ✅ عدّلي الاسم إذا لزم
 
-    let model, video;
+  let model, video;
 
-    async function init() {
-      model = await tmImage.load(
-        MODEL_URL + "model.json",
-        MODEL_URL + "metadata.json"
+  async function init() {
+    model = await tmImage.load(
+      MODEL_URL + "model.json",
+      MODEL_URL + "metadata.json"
+    );
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" }
+    });
+
+    video = document.createElement("video");
+    video.srcObject = stream;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true;
+
+    document.getElementById("webcam-container").appendChild(video);
+    requestAnimationFrame(loop);
+  }
+
+  async function loop() {
+    if (video.readyState === 4) {
+      const predictions = await model.predict(video);
+      const best = predictions.reduce(
+        (a,b)=> a.probability > b.probability ? a : b
       );
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }
-      });
-
-      video = document.createElement("video");
-      video.srcObject = stream;
-      video.autoplay = true;
-      video.playsInline = true;
-      video.muted = true;
-
-      document.getElementById("webcam-container").appendChild(video);
-      requestAnimationFrame(loop);
+      document.getElementById("result").innerText =
+        best.probability > 0.35
+        ? "✅ نوع التمر: " + best.className
+        : "جاري تحليل التمر...";
     }
+    requestAnimationFrame(loop);
+  }
 
-    async function loop() {
-      if (video.readyState === 4) {
-        const predictions = await model.predict(video);
-        let best = predictions.reduce(
-          (a, b) => a.probability > b.probability ? a : b
-        );
-
-        document.getElementById("result").innerText =
-          best.probability > 0.35
-            ? "✅ نوع التمر: " + best.className
-            : "جاري تحليل التمر...";
-      }
-      requestAnimationFrame(loop);
-    }
-
-    init();
-  </script>
+  init();
+</script>
 
 </body>
 </html>
